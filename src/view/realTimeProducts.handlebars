@@ -2,7 +2,7 @@
 <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
 
 
-<form id="productForm" action="/api/products" method="POST">
+<form id="productForm" >
       <input type="text" id='title' name="title" placeholder="Titulo">
         <input type="text" id='description' name="description" placeholder="Descripcion">
         <input type="text" id='category' name="category" placeholder="Categoria">
@@ -29,9 +29,16 @@
         const code = document.getElementById('code').value;
         const stock = document.getElementById('stock').value;
         const prod = { title, price,description,category,status,thumbnail,code,stock }
-        socket.emit('addProduct', {title, price,description,category,status,thumbnail,code,stock,});
-        console.log({prod});
-        form.reset();
+
+        if(!title || !price || !description || !category || !status || !thumbnail || !code || !stock) {
+          return alert('Todos los campos son obligatorios');
+        }
+        else{
+            
+            socket.emit('addProduct', {title, price,description,category,status,thumbnail,code,stock,});
+            console.log({prod});
+            form.reset()
+            };
       });
 
       socket.on('productAdded', (data) => {
@@ -44,8 +51,10 @@
           <div>
             <h2>${product.title}</h2>
             <p>${product.description}</p>
+            <p>${product.category}</p>
+            <p>${product.status}</p>
             <p>${product.price}</p>
-            <img src="${product.thumbnail}" alt="${product.title}">
+            <img src="${product.thumbnail}" alt="${product.thumbnail}">
             <p>${product.code}</p>
             <p>${product.stock}</p>
           </div>
@@ -53,4 +62,7 @@
         })
         productsSec.innerHTML = info;
       });
+
+      
     </script>
+
