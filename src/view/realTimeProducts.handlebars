@@ -1,7 +1,9 @@
-<div>
-    <h2>Agregar un producto</h2>
-    <form action="/api/products" method="POST">
-        <input type="text" id='title' name="title" placeholder="Titulo">
+
+<script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+
+
+<form id="productForm" action="/api/products" method="POST">
+      <input type="text" id='title' name="title" placeholder="Titulo">
         <input type="text" id='description' name="description" placeholder="Descripcion">
         <input type="text" id='category' name="category" placeholder="Categoria">
         <input type="number" id='price' name="price" placeholder="Precio">
@@ -9,19 +11,46 @@
         <input type="text" id='thumbnail' name="thumbnail" placeholder="Imagen">
         <input type="text" id='code' name="code" placeholder="Codigo">
         <input type="number" id='stock' name="stock" placeholder="Stock">
-        <button type="submit">Agregar producto</button>
-</div><br>
-<h2>Lista de productos:</h2>
-<div><br>
-    {{#each productsFile}}
-        <div>
-            <h2>{{this.title}}</h2>
-            <p>{{this.description}}</p>
-            <p>{{this.price}}</p>
-            <img src="{{this.thumbnail}}" alt="{{this.title}}">
-            <p>{{this.code}}</p>
-            <p>{{this.stock}}</p>
-        </div>
-    {{/each}}
-</div>
-<script src="../../public/js/productAdd.js">
+      <button type="submit">Add Product</button>
+    </form>
+    <div class="productsSec">info</div>
+    
+    <script>
+      const socket = io();
+      const form = document.getElementById('productForm');
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const title = document.getElementById('title').value;
+        const price = document.getElementById('price').value;
+        const description = document.getElementById('description').value;
+        const category = document.getElementById('category').value;
+        const status = document.getElementById('status').value;
+        const thumbnail = document.getElementById('thumbnail').value;
+        const code = document.getElementById('code').value;
+        const stock = document.getElementById('stock').value;
+        const prod = { title, price,description,category,status,thumbnail,code,stock }
+        socket.emit('addProduct', {title, price,description,category,status,thumbnail,code,stock,});
+        console.log({prod});
+        form.reset();
+      });
+
+      socket.on('productAdded', (data) => {
+        console.log(data);
+        console.log('Producto agregado')
+        const productsSec = document.querySelector('.productsSec');
+        let info = '';
+        data.forEach((product) => {
+          info += `
+          <div>
+            <h2>${product.title}</h2>
+            <p>${product.description}</p>
+            <p>${product.price}</p>
+            <img src="${product.thumbnail}" alt="${product.title}">
+            <p>${product.code}</p>
+            <p>${product.stock}</p>
+          </div>
+          `;
+        })
+        productsSec.innerHTML = info;
+      });
+    </script>
