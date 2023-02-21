@@ -6,8 +6,9 @@ const PORT = 8080;
 const productsRouter = require('./router/products.router');
 const cartsRouter = require('./router/cart.router');
 const viewProductsRouter = require('./router/views.router');
+const realTimeRouter = require('./router/realTime.router');
 
-const productsFile = "products.json";
+const productsFile = require ('../products.json');
 const cartsFile = "carts.json";
 
 const app = express();
@@ -17,6 +18,7 @@ const app = express();
 // }
 
 const httpServer = app.listen(PORT, () => console.log('Server started'));
+// console.log(productsFile);
 const io = new Server(httpServer);
 
 app.use(express.json());
@@ -32,4 +34,14 @@ app.use('/api/cart',cartsRouter);
 
 app.use('/', viewProductsRouter);
 
+app.use('/realtimeproducts', realTimeRouter);
+
+io.on('connection', socket => {
+    console.log('New client connected!')
+    io.emit('logs', productsFile)
+    socket.on('message', data => {
+        console.log(data)
+        io.emit('logs', messages)
+    })
+})
 

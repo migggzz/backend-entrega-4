@@ -45,10 +45,11 @@ const{title,description,code,price,status,stock,category,thumbnails} = req.body;
 if(!title || !description || !code || !price || !status || !stock || !category){res.status(404).send("faltan parametros")}
 console.log(req.params)
 console.log(req.body)
-if (products.find(p => p.code === code)) {
+if (products.find(p => p.code == code)) {
   console.log("El producto ya existe, no se puede agregar");
   res.status(404).send("El producto ya existe, no se puede agregar" );
 }
+else{
   const product = {
     id: generateId(),
     title: title,
@@ -71,6 +72,29 @@ if (products.find(p => p.code === code)) {
       res.status(201).json(product);
     }
   });
+}
+  // const product = {
+  //   id: generateId(),
+  //   title: title,
+  //   description: description,
+  //   code: code,
+  //   price: price,
+  //   status: req.params.status || true,
+  //   stock: stock,
+  //   category: category,
+  //   thumbnails: thumbnails || []
+  // };
+
+  // products.push(product);
+  // console.log(products)
+
+  // fs.writeFile(productsFile1, JSON.stringify(products), err => {
+  //   if (err) {
+  //     res.status(500).json({ message: "Error saving product" });
+  //   } else {
+  //     res.status(201).json(product);
+  //   }
+  // });
 });
 
 router.put("/:pid", (req, res) => {
