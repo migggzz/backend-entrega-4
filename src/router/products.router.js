@@ -1,5 +1,7 @@
 const {Router} = require('express');
 const fs = require('fs');
+const ProductModel = require('../models/product.model');
+const mongoose = require('mongoose');
 // const uuid = require("uuid/v4");
 const productsFile = require('../../products.json');
 const productsFile1 = "products.json";
@@ -22,25 +24,80 @@ function generateId() {
 }
 
 
-router.get('/', (req, res) => {
-    // to do get all users or a limit of users
-  const limit = parseInt(req.query.limit) || products.length;
-  res.status(200).json(products.slice(0, limit));
+router.get('/', async (req, res) => {
+  let query = {};
+  if (req.query.q) {
+    const searchTerm = req.query.q;
+    // const searchField = req.query.field;
+    // if (searchTerm && searchField) {
+    //   // si se dan los dos parametros, se busca por el campo
+    //   query[searchField] = searchTerm;
+    // }
+    query = {
+      $or: [
+        { title: { $regex: searchTerm, $options: 'i' } },
+        { description: { $regex: searchTerm, $options: 'i' } },
+        // { price: { $regex: searchTerm, $options: 'i' } },
+        // { stock: parseInt({ $regex: searchTerm, $options: 'i' } )},
+        { code: { $regex: searchTerm, $options: 'i' } },
+        { category: { $regex: searchTerm, $options: 'i' } },
+        // { status: { $regex: searchTerm, $options: 'i' } },
+      ]
+    };
+  }
+  const options = {
+    page: req.query.page || 1, 
+    limit: req.query.limit || 10, 
+    sort: req.query.sort || null 
+  };
+
+  const products1 = await ProductModel.paginate(query, function(err,result){
+    if(err) return next(err);
+  })
+
+  res.json(products1)
+
 })
 
-router.get("/:pid", (req, res) => {
-  const product = products.find(p => p.id == req.params.pid);
-  if (product) {
-    res.json(product);
-  } else {
-    res.status(404).json({ message: "Product not found" });
-  }
+router.get("/view", async (req, res) => {
+  // const products1 = await ProductModel.find().lean().exec()
+  let page = parseInt(req.query.page);
+  let limit = parseInt(req.query.limit);
+  if(!page) page =1;
+  if(!limit) limit = 5;
+  const products1 = await ProductModel.paginate({},{page,limit, lean: true});
+  products1.prevLink = products1.hasPrevPage ? `/api/products/view?page=${products1.prevPage}&limit=${limit}` : '';
+  products1.nextLink = products1.hasNextPage ? `/api/products/view?page=${products1.nextPage}&limit=${limit}` : '';
+  if(products1)console.log('found products from the db')
+  res.render('realTimeProducts2', 
+    products1
+  )
+})
+
+
+router.get("/:pid", async (req, res) => {
+  // const product = products.find(p => p.id == req.params.pid);
+  // if (product) {
+  //   res.json(product);
+  // } else {
+  //   res.status(404).json({ message: "Product not found" });
+  // }
+  const id1 = req.params.pid;
+  const id = new mongoose.Types.ObjectId(parseInt(id1));
+
+// find the document with _id = '10'
+thing = await ProductModel.findOne({ title: id1 }).lean().exec();
+
+if(thing){
+  res.json(thing)}
+else{
+  res.json({ message: "Product not found" });
+};
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
 
 const{title,description,code,price,status,stock,category,thumbnails} = req.body;
-
 
 if(!title || !description || !code || !price || !status || !stock || !category){res.status(404).send("faltan parametros")}
 console.log(req.params)
@@ -50,7 +107,7 @@ if (products.find(p => p.code == code)) {
   res.status(404).send("El producto ya existe, no se puede agregar" );
 }
 else{
-  const product = {
+  const product1 = {
     id: generateId(),
     title: title,
     description: description,
@@ -62,14 +119,36 @@ else{
     thumbnails: thumbnails || []
   };
 
-  products.push(product);
+  try {
+    // const product = req.body
+    if (!product1.title) {
+        return res.status(400).json({
+            message: "Error Falta el nombre del producto"
+        })
+    }
+
+  const productAdded = await ProductModel.create(product1)
+        req.io.emit('updatedProducts', await ProductModel.find().lean().exec());
+        // await ProductModel.find().lean().exec()
+        res.json({
+            status: "Success",
+            productAdded
+        })
+    } catch (error) {
+        console.log(error)
+        res.json({
+            error
+        })
+    }
+
+  products.push(product1);
   console.log(products)
 
   fs.writeFile(productsFile1, JSON.stringify(products), err => {
     if (err) {
       res.status(500).json({ message: "Error saving product" });
     } else {
-      res.status(201).json(product);
+      res.status(201).json(product1);
     }
   });
 }
@@ -97,21 +176,14 @@ else{
   // });
 });
 
-router.put("/:pid", (req, res) => {
+router.put("/:pid", async  (req, res) => {
   console.log(req.params.pid)
   // const product1 = products.find(p => p.id == req.params.pid);
   // if(product1 == -1) res.status(404).send("El producto no existe");
   
   // const { title, description, code, price, status, stock, category, thumbnails } = req.body;
 
-  // if (title) products[product1].title = title;
-  // if (description) products[product1].description = description;
-  // if (code) products[product1].code = code;
-  // if (price) products[product1].price = price;
-  // if (status) products[product1].status = status;
-  // if (stock) products[product1].stock = stock;
-  // if (category) products[product1].category = category;
-  // if (thumbnails) products[product1].thumbnails = thumbnails;
+
 
   const productIndex = products.findIndex(p => p.id == req.params.pid);
 
@@ -120,17 +192,6 @@ router.put("/:pid", (req, res) => {
   } else {
 
 
-    // products[productIndex] = {
-    //   ...products[productIndex],
-    //   if (title) {title: req.body.title},
-    //   if (description) {description: req.body.description},
-    //   if (code) {code: req.body.code},
-    //   if (price) {price: req.body.price},
-    //   if (status){status: req.body.status},
-    //   if(stock ){stock: req.body.stock},
-    //   if(category){category: req.body.category},
-    //   if(thumbnails){thumbnails: req.body.thumbnails},
-    // }
     products[productIndex] = {
       ...products[productIndex],
       title: req.body.title || products[productIndex].title,
@@ -148,6 +209,18 @@ router.put("/:pid", (req, res) => {
   
   };
 
+  const id = req.params.pid
+  const productToUpdate = req.body
+
+  const product = await ProductModel.updateOne({
+      _id: id
+  }, productToUpdate)
+  // req.io.emit('updatedProducts', await ProductModel.find().lean().exec());
+  await ProductModel.find().lean().exec();
+  res.json({
+      status: "Success",
+      product
+  })
   fs.writeFile(productsFile1, JSON.stringify(products), err => {
     if (err) {
       res.status(500).json({ message: "Error saving product" });
@@ -159,15 +232,26 @@ router.put("/:pid", (req, res) => {
     
   })
 
-  router.delete("/:pid", (req, res) => {
+  router.delete("/:pid", async (req, res) => {
     const productIndex = products.findIndex(p => p.id == req.params.pid);
     if (productIndex == -1) {
       res.status(404).json({ message: "Product not found" });
     } else {
       products.splice(productIndex, 1);
-      
       return res.status(204).json({products})
         }
+
+    const id = req.params.pid
+    const productDeleted = await ProductModel.deleteOne({_id: id})
+
+    // req.io.emit('updatedProducts', await ProductModel.find().lean().exec());
+    await ProductModel.find().lean().exec()
+    res.json({
+        status: "Success",
+        massage: "Product Deleted!",
+        productDeleted
+    })
+
       });
 
 

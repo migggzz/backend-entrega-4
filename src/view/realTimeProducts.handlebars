@@ -34,7 +34,6 @@
           return alert('Todos los campos son obligatorios');
         }
         else{
-            
             socket.emit('addProduct', {title, price,description,category,status,thumbnail,code,stock,});
             console.log({prod});
             form.reset()
