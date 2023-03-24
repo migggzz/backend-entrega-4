@@ -3,6 +3,7 @@ const fs = require('fs');
 const cartsFile = require ('../../cart.json');
 const cartPath = 'cart.json';
 const productsFile = require('../../products.json');
+const cartModel = require('../models/cart.model');
 let carts = [];
 
 let products = productsFile || [];
