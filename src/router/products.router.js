@@ -5,23 +5,13 @@ const mongoose = require('mongoose');
 // const uuid = require("uuid/v4");
 const productsFile = require('../../products.json');
 const productsFile1 = "products.json";
+const generateId = require('../controllers/generateId');
 let products = [];
-
-// products.push({name:"asdasd",price:123,description:"asdasd",id:1})
 
 
 const router = Router();
 
 if(productsFile) products = productsFile;
-
-function generateId() {
-  let counter = products.length;
-  if (counter ==0) {
-      return 1;
-  } else {
-      return (products[counter-1].id)+1;
-  }
-}
 
 
 router.get('/', async (req, res) => {
@@ -48,14 +38,16 @@ router.get('/', async (req, res) => {
   const options = {
     page: req.query.page || 1, 
     limit: req.query.limit || 10, 
-    sort: req.query.sort || null 
+    sort: req.query.sort || null,
+    lean: true
   };
 
-  const products1 = await ProductModel.paginate(query, function(err,result){
-    if(err) return next(err);
+  const products1 = await ProductModel.paginate(query,options, function(err,result){
+    if(err) json.status(500).json({message: "Error getting products"});
+    res.json(result)
   })
 
-  res.json(products1)
+  // res.json(products1)
 
 })
 
@@ -76,17 +68,10 @@ router.get("/view", async (req, res) => {
 
 
 router.get("/:pid", async (req, res) => {
-  // const product = products.find(p => p.id == req.params.pid);
-  // if (product) {
-  //   res.json(product);
-  // } else {
-  //   res.status(404).json({ message: "Product not found" });
-  // }
+// Buscar pot id
   const id1 = req.params.pid;
-  const id = new mongoose.Types.ObjectId(parseInt(id1));
-
-// find the document with _id = '10'
-thing = await ProductModel.findOne({ title: id1 }).lean().exec();
+thing = await ProductModel.findOne({ _id: id1 }).lean().exec();
+// thing2 = JSON.stringify(thing);
 
 if(thing){
   res.json(thing)}
@@ -185,29 +170,29 @@ router.put("/:pid", async  (req, res) => {
 
 
 
-  const productIndex = products.findIndex(p => p.id == req.params.pid);
+  // const productIndex = products.findIndex(p => p.id == req.params.pid);
 
-  if (productIndex == -1) {
-    res.status(404).json({ message: "Product not found" });
-  } else {
+  // if (productIndex == -1) {
+  //   res.status(404).json({ message: "Product not found" });
+  // } else {
 
 
-    products[productIndex] = {
-      ...products[productIndex],
-      title: req.body.title || products[productIndex].title,
-      description: req.body.description || products[productIndex].description,
-      code: req.body.code || products[productIndex].code,
-      price: req.body.price || products[productIndex].price,
-      status: req.body.status || products[productIndex].status,
-     stock: req.body.stock || products[productIndex].stock,
-      category: req.body.category || products[productIndex].category,
-     thumbnails: req.body.thumbnails || products[productIndex].thumbnails,
-    }
+  //   products[productIndex] = {
+  //     ...products[productIndex],
+  //     title: req.body.title || products[productIndex].title,
+  //     description: req.body.description || products[productIndex].description,
+  //     code: req.body.code || products[productIndex].code,
+  //     price: req.body.price || products[productIndex].price,
+  //     status: req.body.status || products[productIndex].status,
+  //    stock: req.body.stock || products[productIndex].stock,
+  //     category: req.body.category || products[productIndex].category,
+  //    thumbnails: req.body.thumbnails || products[productIndex].thumbnails,
+  //   }
 
-    res.send({thing:"the following has been modified",...products});
+  //   res.send({thing:"the following has been modified",...products});
   
   
-  };
+  // };
 
   const id = req.params.pid
   const productToUpdate = req.body
@@ -221,25 +206,25 @@ router.put("/:pid", async  (req, res) => {
       status: "Success",
       product
   })
-  fs.writeFile(productsFile1, JSON.stringify(products), err => {
-    if (err) {
-      res.status(500).json({ message: "Error saving product" });
-    } else {
-      // res.status(201).json(products);
-      return
-    }
-  });
+  // fs.writeFile(productsFile1, JSON.stringify(products), err => {
+  //   if (err) {
+  //     res.status(500).json({ message: "Error saving product" });
+  //   } else {
+  //     // res.status(201).json(products);
+  //     return
+  //   }
+  // });
     
   })
 
   router.delete("/:pid", async (req, res) => {
-    const productIndex = products.findIndex(p => p.id == req.params.pid);
-    if (productIndex == -1) {
-      res.status(404).json({ message: "Product not found" });
-    } else {
-      products.splice(productIndex, 1);
-      return res.status(204).json({products})
-        }
+    // const productIndex = products.findIndex(p => p.id == req.params.pid);
+    // if (productIndex == -1) {
+    //   res.status(404).json({ message: "Product not found" });
+    // } else {
+    //   products.splice(productIndex, 1);
+    //   return res.status(204).json({products})
+    //     }
 
     const id = req.params.pid
     const productDeleted = await ProductModel.deleteOne({_id: id})
